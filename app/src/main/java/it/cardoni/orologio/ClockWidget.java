@@ -137,8 +137,8 @@ public class ClockWidget extends AppWidgetProvider {
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(bmp);
 
-        Typeface fNumeri = context.getResources().getFont(R.font.montserrat_numeri);
-        Typeface fTesto = context.getResources().getFont(R.font.montserrat_testo);
+        Typeface fNumeri = context.getResources().getFont(R.font.inter_numeri);
+        Typeface fTesto = context.getResources().getFont(R.font.inter_testo);
 
         Date ora = new Date();
         Locale loc = Locale.getDefault();
@@ -161,8 +161,9 @@ public class ClockWidget extends AppWidgetProvider {
         pn.setColor(COLORE_NUMERI);
         pn.setTypeface(fNumeri);
         pn.setTextAlign(Paint.Align.CENTER);
-        pn.setLetterSpacing(0.12f);
-        pn.setTextSize(lato * 0.56f);
+        pn.setLetterSpacing(0.06f);
+        pn.setTextScaleX(0.88f);   // cifre leggermente più strette, come nel modello
+        pn.setTextSize(lato * 0.64f);
 
         Paint pt = new Paint(Paint.ANTI_ALIAS_FLAG);
         pt.setColor(COLORE_NUMERI);
@@ -185,7 +186,7 @@ public class ClockWidget extends AppWidgetProvider {
             android.graphics.Rect b = new android.graphics.Rect();
             pn.getTextBounds(grandi[i], 0, grandi[i].length(), b);
             // letterSpacing aggiunge spazio anche dopo l'ultima cifra: compenso per centrare
-            cv.drawText(grandi[i], cx + pn.getTextSize() * 0.06f, cy - b.exactCenterY(), pn);
+            cv.drawText(grandi[i], cx + pn.getTextSize() * 0.03f * 0.88f, cy - b.exactCenterY(), pn);
 
             // taglio orizzontale stile flip
             float sp = Math.max(2f, lato * 0.012f);

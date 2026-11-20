@@ -5,6 +5,6 @@ Nessun servizio in background: l'ora è aggiornata dal sistema (TextClock).
 
 - Colori: `app/src/main/res/values/colors.xml`
 - Grafica: `app/src/main/res/layout/clock_widget.xml`
-- Font: Montserrat (SIL Open Font License, vedi `FONT_LICENSE_OFL.txt`)
+- Font: Inter (SIL Open Font License, vedi `FONT_LICENSE_OFL.txt`)
 
 L'APK viene compilato da GitHub Actions a ogni push e pubblicato nelle Releases.
