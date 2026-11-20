@@ -26,17 +26,17 @@ jobs:
         run: gradle assembleRelease --no-daemon
 
       - name: Rinomina
-        run: cp app/build/outputs/apk/release/app-release.apk OrologioWidget.apk
+        run: cp app/build/outputs/apk/release/app-release.apk OrologioARibalta.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: OrologioWidget
-          path: OrologioWidget.apk
+          name: OrologioARibalta
+          path: OrologioARibalta.apk
 
       - name: Pubblica come download
         uses: softprops/action-gh-release@v2
         with:
           tag_name: orologio-v${{ github.run_number }}
-          name: Orologio Widget ${{ github.run_number }}
+          name: Orologio a ribalta ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          files: OrologioWidget.apk
+          files: OrologioARibalta.apk
