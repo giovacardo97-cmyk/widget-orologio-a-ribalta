@@ -35,7 +35,7 @@ public class ClockWidget extends AppWidgetProvider {
     static final String AZIONE_MINUTO = "it.cardoni.orologio.MINUTO";
 
     // ---- aspetto (stessi valori dell'anteprima) ----
-    private static final int COLORE_QUADRATO = 0xFF0D0D0D;
+    private static final int COLORE_QUADRATO = 0xFF0C0C0C;
     private static final int COLORE_NUMERI = 0xFFB0B0B0;
 
     @Override
@@ -132,13 +132,16 @@ public class ClockWidget extends AppWidgetProvider {
         manager.updateAppWidget(id, views);
     }
 
+    // ---------------- disegno stile "segmenti" ----------------
+
+    private static final int COLORE_SPENTO = 0xFF1A1A1A;   // segmenti spenti, appena visibili
+    private static final String[] SEGMENTI = {
+            "abcdef", "bc", "abged", "abgcd", "fgbc", "afgcd", "afgedc", "abc", "abcdefg", "abcdfg"};
+
     /** Disegna i due quadrati: [data / ore]  [giorno / minuti]. */
     static Bitmap creaImmagine(Context context, int w, int h) {
         Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
         Canvas cv = new Canvas(bmp);
-
-        Typeface fNumeri = context.getResources().getFont(R.font.inter_numeri);
-        Typeface fTesto = context.getResources().getFont(R.font.inter_testo);
 
         Date ora = new Date();
         Locale loc = Locale.getDefault();
@@ -147,54 +150,130 @@ public class ClockWidget extends AppWidgetProvider {
         String data = new SimpleDateFormat("dd/MM/yy", loc).format(ora);
         String giorno = new SimpleDateFormat("EEEE", loc).format(ora).toLowerCase(loc);
 
-        // i due quadrati restano quadrati e centrati nello spazio del widget
         float spazio = w * 0.045f;
         float lato = Math.min((w - spazio) / 2f, h);
         float x0 = (w - (lato * 2 + spazio)) / 2f;
         float y0 = (h - lato) / 2f;
-        float raggio = lato * 0.16f;
 
         Paint pq = new Paint(Paint.ANTI_ALIAS_FLAG);
         pq.setColor(COLORE_QUADRATO);
 
-        Paint pn = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pn.setColor(COLORE_NUMERI);
-        pn.setTypeface(fNumeri);
-        pn.setTextAlign(Paint.Align.CENTER);
-        pn.setLetterSpacing(0.06f);
-        pn.setTextScaleX(0.88f);   // cifre leggermente più strette, come nel modello
-        pn.setTextSize(lato * 0.64f);
-
-        Paint pt = new Paint(Paint.ANTI_ALIAS_FLAG);
-        pt.setColor(COLORE_NUMERI);
-        pt.setTypeface(fTesto);
-        pt.setTextAlign(Paint.Align.CENTER);
-        pt.setTextSize(lato * 0.092f);
-
-        String[] grandi = {ore, minuti};
-        String[] piccoli = {data, giorno};
+        Typeface fTesto = context.getResources().getFont(R.font.inter_testo);
 
         for (int i = 0; i < 2; i++) {
             float l = x0 + i * (lato + spazio);
-            RectF r = new RectF(l, y0, l + lato, y0 + lato);
-            cv.drawRoundRect(r, raggio, raggio, pq);
-
-            float cx = r.centerX();
-            float cy = r.centerY();
-
-            // numeri centrati in verticale (sulle cifre, non sulla riga del testo)
-            android.graphics.Rect b = new android.graphics.Rect();
-            pn.getTextBounds(grandi[i], 0, grandi[i].length(), b);
-            // letterSpacing aggiunge spazio anche dopo l'ultima cifra: compenso per centrare
-            cv.drawText(grandi[i], cx + pn.getTextSize() * 0.03f * 0.88f, cy - b.exactCenterY(), pn);
-
-            // taglio orizzontale stile flip
-            float sp = Math.max(2f, lato * 0.012f);
-            cv.drawRect(r.left, cy - sp / 2f, r.right, cy + sp / 2f, pq);
-
-            // data / giorno in alto
-            cv.drawText(piccoli[i], cx, r.top + lato * 0.155f, pt);
+            cv.drawRoundRect(new RectF(l, y0, l + lato, y0 + lato), lato * 0.12f, lato * 0.12f, pq);
+            disegnaQuadrato(cv, l, y0, lato, i == 0 ? ore : minuti, i == 0 ? data : null,
+                    i == 0 ? null : giorno, fTesto);
         }
         return bmp;
+    }
+
+    private static void disegnaQuadrato(Canvas cv, float l, float t0, float S,
+                                        String cifre, String data, String giorno, Typeface fTesto) {
+        Paint acceso = new Paint(Paint.ANTI_ALIAS_FLAG);
+        acceso.setColor(COLORE_NUMERI);
+        acceso.setStyle(Paint.Style.FILL);
+        Paint spento = new Paint(acceso);
+        spento.setColor(COLORE_SPENTO);
+
+        // numeri grandi, centrati nel quadrato
+        float hh = S * 0.56f, ww = hh * 0.5f, sp = hh * 0.115f, gap = S * 0.10f;
+        float xs = l + (S - (2 * ww + gap)) / 2f;
+        float ys = t0 + (S - hh) / 2f;
+        float arrot = S * 0.012f;  // vertici leggermente stondati
+        acceso.setPathEffect(new android.graphics.CornerPathEffect(arrot));
+        spento.setPathEffect(new android.graphics.CornerPathEffect(arrot));
+        for (int k = 0; k < 2; k++) {
+            float x = xs + k * (ww + gap);
+            cifra(cv, '8', x, ys, ww, hh, sp, spento);          // ombra dei segmenti spenti
+            cifra(cv, cifre.charAt(k), x, ys, ww, hh, sp, acceso);
+        }
+
+        // centro verticale della fascia tra bordo alto e cima dei numeri
+        float cy = t0 + ((S - hh) / 2f - sp / 2f) / 2f;
+
+        if (data != null) {
+            float dh = S * 0.07f, dw = dh * 0.5f, dt = dh * 0.16f, dgap = dh * 0.28f, sl = dh * 0.35f;
+            Paint pd = new Paint(acceso);
+            pd.setPathEffect(new android.graphics.CornerPathEffect(arrot * 0.5f));
+            float tot = dt;
+            for (int k = 0; k < data.length(); k++) {
+                char c = data.charAt(k);
+                tot += (c == '/' ? sl : c == '1' ? dw * 0.45f : dw) + (k > 0 ? dgap : 0);
+            }
+            float x = l + S / 2f - tot / 2f + dt / 2f;
+            float top = cy - dh / 2f;
+            for (int k = 0; k < data.length(); k++) {
+                char c = data.charAt(k);
+                float wc = c == '/' ? sl : c == '1' ? dw * 0.45f : dw;
+                if (c == '/') {
+                    float tw = dt * 0.55f;
+                    android.graphics.Path p = new android.graphics.Path();
+                    p.moveTo(x + wc - tw, top); p.lineTo(x + wc + tw, top);
+                    p.lineTo(x + tw, top + dh); p.lineTo(x - tw, top + dh); p.close();
+                    Paint ps = new Paint(acceso); ps.setPathEffect(null);
+                    cv.drawPath(p, ps);
+                } else if (c >= '0' && c <= '9') {
+                    cifra(cv, c, x, top, wc, dh, dt, pd);
+                }
+                x += wc + dgap;
+            }
+        }
+
+        if (giorno != null) {
+            Paint pt = new Paint(Paint.ANTI_ALIAS_FLAG);
+            pt.setColor(COLORE_NUMERI);
+            pt.setTypeface(fTesto);
+            pt.setTextAlign(Paint.Align.CENTER);
+            pt.setTextSize(S * 0.078f);
+            android.graphics.Rect b = new android.graphics.Rect();
+            pt.getTextBounds(giorno, 0, giorno.length(), b);
+            cv.drawText(giorno, l + S / 2f, cy - b.exactCenterY(), pt);
+        }
+    }
+
+    /** Disegna una cifra a 7 segmenti (solo i segmenti accesi per quella cifra). */
+    private static void cifra(Canvas cv, char c, float x, float y, float w, float h, float t, Paint p) {
+        String on = SEGMENTI[c - '0'];
+        float g = t * 0.12f, hw = t / 2f;
+        float lh = w - 2 * g, lv = h / 2f - 2 * g;
+        for (char s : on.toCharArray()) {
+            android.graphics.Path path;
+            switch (s) {
+                case 'a': path = orizz(x + w / 2f, y, lh, hw); break;
+                case 'g': path = orizz(x + w / 2f, y + h / 2f, lh, hw); break;
+                case 'd': path = orizz(x + w / 2f, y + h, lh, hw); break;
+                case 'f': path = vert(x, y + h / 4f, lv, hw); break;
+                case 'b': path = vert(x + w, y + h / 4f, lv, hw); break;
+                case 'e': path = vert(x, y + 3 * h / 4f, lv, hw); break;
+                default:  path = vert(x + w, y + 3 * h / 4f, lv, hw); break; // 'c'
+            }
+            cv.drawPath(path, p);
+        }
+    }
+
+    private static android.graphics.Path orizz(float cx, float cy, float L, float hw) {
+        android.graphics.Path p = new android.graphics.Path();
+        p.moveTo(cx - L / 2f, cy);
+        p.lineTo(cx - L / 2f + hw, cy - hw);
+        p.lineTo(cx + L / 2f - hw, cy - hw);
+        p.lineTo(cx + L / 2f, cy);
+        p.lineTo(cx + L / 2f - hw, cy + hw);
+        p.lineTo(cx - L / 2f + hw, cy + hw);
+        p.close();
+        return p;
+    }
+
+    private static android.graphics.Path vert(float cx, float cy, float L, float hw) {
+        android.graphics.Path p = new android.graphics.Path();
+        p.moveTo(cx, cy - L / 2f);
+        p.lineTo(cx + hw, cy - L / 2f + hw);
+        p.lineTo(cx + hw, cy + L / 2f - hw);
+        p.lineTo(cx, cy + L / 2f);
+        p.lineTo(cx - hw, cy + L / 2f - hw);
+        p.lineTo(cx - hw, cy - L / 2f + hw);
+        p.close();
+        return p;
     }
 }
